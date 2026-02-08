@@ -1,0 +1,1435 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Micravise Animate</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* --- CSS UTAMA --- */
+        html, body {
+            margin: 0; padding: 0; width: 100%;
+            height: 100dvh; 
+            overflow: hidden; overscroll-behavior: none; touch-action: none;
+            -webkit-tap-highlight-color: transparent;
+            font-family: 'Inter', sans-serif;
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+        .hidden-view { display: none !important; }
+
+        /* Styles Halaman Depan */
+        .gradient-text {
+            background: linear-gradient(90deg, #007bff 0%, #00d2ff 50%, #00e676 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .plus-icon { font-weight: 100; line-height: 0.8; }
+        .custom-input {
+            width: 100%; border: 1px solid #9ca3af; border-radius: 4px; padding: 12px 14px;
+            font-size: 16px; color: #374151; outline: none; background-color: white;
+        }
+        .custom-input:focus { border-color: #dc2626; }
+        .custom-label { display: block; color: #1f2937; font-size: 16px; margin-bottom: 8px; font-weight: 400; }
+        .btn-confirm {
+            background-color: #dc2626; color: white; width: 100%; padding: 14px;
+            border-radius: 6px; font-size: 18px; font-weight: 500; text-align: center;
+            border: none; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .btn-confirm:active { background-color: #b91c1c; }
+
+        /* Styles Editor */
+        #editor-view {
+            background-color: #333; font-family: sans-serif; user-select: none; -webkit-user-select: none;
+            height: 100%; width: 100%; display: flex; flex-direction: column; position: relative;
+        }
+        #editor-view canvas { touch-action: none; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        
+        #editor-view input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+        #editor-view input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 18px; width: 18px; border-radius: 50%; background: #3b82f6; cursor: pointer; margin-top: -7px; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+        #editor-view input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #cbd5e1; border-radius: 2px; }
+        
+        .tool-btn { display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 6px; color: #d1d5db; transition: all 0.1s; }
+        .tool-btn.active { background-color: #bfdbfe; color: #1d4ed8; border: 2px solid #60a5fa; }
+        .tool-btn:active { transform: scale(0.95); }
+
+        .frame-item { min-width: 60px; height: 80px; background-color: white; border: 2px solid #6b7280; margin: 0 4px; position: relative; cursor: pointer; border-radius: 4px; overflow: hidden; flex-shrink: 0; }
+        .frame-item.active { border: 3px solid #ef4444; z-index: 10; box-shadow: 0 0 5px rgba(255,0,0,0.5); }
+        .frame-thumb { width: 100%; height: 100%; background-color: #fff; background-size: contain; background-repeat: no-repeat; background-position: center; }
+        .frame-number { position: absolute; bottom: 0; right: 0; background: rgba(0,0,0,0.7); color: white; font-size: 10px; padding: 1px 5px; border-top-left-radius: 4px; pointer-events: none; }
+
+        .layer-item { display: flex; align-items: center; gap: 8px; padding: 10px; border-bottom: 1px solid #f3f4f6; background-color: white; cursor: pointer; }
+        .layer-item.active { background-color: #eff6ff; border-left: 4px solid #3b82f6; }
+        
+        .color-card { background: white; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 300px; padding: 12px; border: 1px solid #e5e7eb; }
+        .hex-input { border: 1px solid #d1d5db; padding: 4px 8px; font-family: monospace; font-size: 14px; width: 100px; text-align: center; border-radius: 4px; }
+        .alpha-checkered { background-image: linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%); background-size: 8px 8px; background-color: white; }
+    
+        /* Project Card Styles */
+        .project-card {
+            background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px;
+            display: flex; align-items: center; gap: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: all 0.2s;
+        }
+        .project-card:active { background-color: #f9fafb; transform: scale(0.98); }
+        .project-icon {
+            width: 48px; height: 48px; background-color: #f3f4f6; border-radius: 6px;
+            display: flex; align-items: center; justify-content: center; color: #9ca3af;
+        }
+    </style>
+</head>
+<body class="bg-white">
+
+    <!-- VIEW 1: HOME -->
+    <div id="home-view" class="flex flex-col h-full w-full bg-white">
+        <header class="h-16 flex-none flex items-center justify-center border-b-[3px] border-black bg-white z-10 shadow-sm">
+            <h1 class="text-3xl tracking-tight font-semibold gradient-text select-none">Micravise animate</h1>
+        </header>
+        
+        <main class="flex-1 relative bg-white w-full overflow-hidden">
+            <!-- Empty State -->
+            <div id="empty-state" class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div class="text-gray-400 text-sm opacity-50 select-none">Tap + to start</div>
+            </div>
+            
+            <!-- Project List Container -->
+            <div id="project-list" class="w-full h-full overflow-y-auto p-4 space-y-3 pb-24">
+                <!-- Projects will be injected here via JS -->
+            </div>
+        </main>
+
+        <footer id="btn-goto-form" class="h-20 flex-none bg-[#4a80d6] flex items-center justify-center cursor-pointer active:bg-[#3a6bc0] transition-colors select-none z-20">
+            <div class="text-white text-[80px] plus-icon pb-3">+</div>
+        </footer>
+    </div>
+
+    <!-- VIEW 2: FORM -->
+    <div id="form-view" class="absolute inset-0 bg-white z-50 flex flex-col p-6 hidden-view overflow-y-auto">
+        <div class="mt-8 space-y-6 max-w-md mx-auto w-full">
+            <div class="mb-5"><input type="text" id="inp-project-name" placeholder="Nama animasimu" class="custom-input"></div>
+            <div class="mb-5"><label class="custom-label">Ukuran kanvas</label><div class="flex gap-4"><input type="number" id="inp-width" placeholder="Lebar" class="custom-input" value="800"><input type="number" id="inp-height" placeholder="Tinggi" class="custom-input" value="600"></div></div>
+            <div class="mb-10"><label class="custom-label">Frame per second</label><input type="number" id="inp-fps" placeholder="FPS" class="custom-input" value="12"></div>
+            <div><button id="btn-confirm-project" class="btn-confirm">Konfirmasi</button></div>
+            <div class="mt-4 text-center"><button id="btn-cancel-form" class="text-gray-400 text-sm py-2 px-4">Batal</button></div>
+        </div>
+    </div>
+
+    <!-- VIEW 3: EDITOR -->
+    <div id="editor-view" class="hidden-view">
+        <button id="btnExitEditor" class="absolute top-3 left-3 z-[60] w-10 h-10 bg-gray-800 text-white rounded-full flex items-center justify-center shadow-lg border border-gray-600 active:scale-90 transition hover:bg-red-600">
+            <i class="fas fa-times text-xl"></i>
+        </button>
+
+        <!-- EXPORT BUTTON -->
+        <button onclick="window.app.toggleExportModal()" class="absolute top-3 left-16 z-[60] w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg border border-blue-400 active:scale-90 transition hover:bg-blue-500">
+            <i class="fas fa-download text-sm"></i>
+        </button>
+
+        <!-- IMPORT IMAGE BUTTON -->
+        <input type="file" id="imgImportInput" accept="image/*" class="hidden">
+        <button onclick="document.getElementById('imgImportInput').click()" class="absolute top-3 left-28 z-[60] w-10 h-10 bg-green-600 text-white rounded-full flex items-center justify-center shadow-lg border border-green-400 active:scale-90 transition hover:bg-green-500">
+            <i class="fas fa-image text-sm"></i>
+        </button>
+
+        <!-- IMPORT CONTROLS (Floating Buttons) -->
+        <div id="importControls" class="hidden absolute bottom-32 left-1/2 transform -translate-x-1/2 z-[70] flex gap-4">
+             <button onclick="window.app.confirmImport()" class="w-12 h-12 bg-green-500 text-white rounded-full shadow-xl flex items-center justify-center border-2 border-white active:scale-90 transition">
+                 <i class="fas fa-check text-xl"></i>
+             </button>
+             <button onclick="window.app.cancelImport()" class="w-12 h-12 bg-red-500 text-white rounded-full shadow-xl flex items-center justify-center border-2 border-white active:scale-90 transition">
+                 <i class="fas fa-times text-xl"></i>
+             </button>
+        </div>
+
+        <div class="h-6 w-full bg-gray-900 flex justify-center items-end relative z-50"><div class="w-32 h-4 bg-black rounded-b-xl"></div></div>
+
+        <div id="canvas-container" class="flex-1 relative bg-gray-700 flex items-center justify-center overflow-hidden">
+            <!-- FIX: Added 'shrink-0' to prevent flexbox from squashing the width -->
+            <div id="zoomWrapper" class="relative bg-white shadow-2xl origin-center transition-transform duration-75 ease-out shrink-0">
+                <div class="absolute inset-0 alpha-checkered opacity-20 pointer-events-none"></div>
+                <canvas id="onionCanvas" class="absolute top-0 left-0 w-full h-full pointer-events-none z-0 opacity-50"></canvas>
+                <div id="layerStack" class="absolute top-0 left-0 w-full h-full z-10"></div>
+                <canvas id="boneRenderCanvas" class="absolute top-0 left-0 w-full h-full pointer-events-none z-15"></canvas>
+                <canvas id="overlayCanvas" class="absolute top-0 left-0 w-full h-full cursor-crosshair z-20"></canvas>
+            </div>
+
+            <div class="absolute right-2 top-4 flex flex-col gap-3 p-1 z-40">
+                <div class="bg-gray-800 rounded-lg p-1 flex flex-col gap-1 shadow-lg border border-gray-600">
+                    <button onclick="window.app.undo()" class="w-10 h-10 flex items-center justify-center hover:bg-gray-700 rounded text-white active:scale-90 transition"><i class="fas fa-reply"></i></button>
+                    <button onclick="window.app.redo()" class="w-10 h-10 flex items-center justify-center hover:bg-gray-700 rounded text-white active:scale-90 transition"><i class="fas fa-share fa-flip-horizontal"></i></button>
+                </div>
+                <div class="bg-gray-800 rounded-lg p-1 flex flex-col items-center gap-2 shadow-lg border border-gray-600">
+                    <div class="text-[10px] text-gray-400 font-bold mt-1">LAY</div>
+                    <button onclick="window.app.createLayer()" class="w-10 h-10 bg-blue-600 rounded flex items-center justify-center hover:bg-blue-500 shadow-md active:scale-90 transition"><i class="fas fa-plus"></i></button>
+                    <button onclick="window.app.toggleLayerPanel()" class="w-10 h-10 bg-gray-700 rounded flex items-center justify-center hover:bg-gray-600 active:scale-90 transition relative">
+                        <i class="fas fa-layer-group"></i><div id="layerCountBadge" class="absolute -top-1 -right-1 bg-red-500 text-[9px] w-4 h-4 flex items-center justify-center rounded-full border border-gray-800">1</div>
+                    </button>
+                    <div class="w-6 h-px bg-gray-600"></div>
+                    <button onclick="window.app.setTool('bone')" id="btnBone" class="w-10 h-10 hover:bg-white/10 rounded flex items-center justify-center active:scale-90 transition tool-btn"><i class="fas fa-bone text-green-400"></i></button>
+                    <button onclick="window.app.clearActiveLayer()" class="w-10 h-10 hover:bg-red-900/50 text-red-400 rounded flex items-center justify-center active:scale-90 transition"><i class="fas fa-trash-alt"></i></button>
+                </div>
+            </div>
+            <div id="zoomIndicator" class="absolute bottom-4 left-4 bg-black/50 text-white px-2 py-1 rounded text-xs pointer-events-none opacity-0 transition-opacity">100%</div>
+        </div>
+
+        <!-- UI POPUPS (SAME AS BEFORE) -->
+        <div id="selectionMenu" class="hidden absolute z-50 bg-white text-gray-800 p-1.5 rounded shadow-xl flex gap-1 transform -translate-x-1/2 -translate-y-full border border-gray-300">
+            <button id="btnCopy" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()" class="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm font-medium"><i class="fas fa-copy"></i></button>
+            <button id="btnCut" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()" class="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm font-medium"><i class="fas fa-cut"></i></button>
+            <button id="btnPaste" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()" class="hidden px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded text-sm font-medium"><i class="fas fa-paste"></i></button>
+            <button id="btnCancelSel" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()" class="px-3 py-1 text-red-500 hover:bg-red-50 rounded text-sm"><i class="fas fa-times"></i></button>
+        </div>
+
+        <div id="frameMenu" class="hidden absolute z-50 bg-white text-gray-800 p-3 rounded-lg shadow-2xl border border-gray-300 flex flex-col gap-2 w-40 transform -translate-x-1/2" style="bottom: 120px;">
+            <div class="text-xs text-center font-bold text-gray-500 border-b pb-1">OPSI FRAME</div>
+            <button onclick="window.app.duplicateFrame()" class="text-left px-3 py-2 bg-blue-50 hover:bg-blue-100 text-sm rounded text-blue-700 flex items-center gap-3 font-medium active:scale-95 transition"><i class="fas fa-copy"></i> Duplikat</button>
+            <button onclick="window.app.deleteFrame()" class="text-left px-3 py-2 bg-red-50 hover:bg-red-100 text-sm rounded text-red-600 flex items-center gap-3 font-medium active:scale-95 transition"><i class="fas fa-trash"></i> Hapus</button>
+            <button onclick="document.getElementById('frameMenu').classList.add('hidden')" class="text-center text-xs text-gray-400 mt-1 py-1 hover:text-gray-600">Batal</button>
+        </div>
+
+        <div id="boneMenu" class="hidden absolute z-50 bg-white text-gray-800 p-2 rounded-lg shadow-2xl border border-gray-300 flex flex-col gap-1 w-44">
+            <div class="text-xs text-center font-bold text-gray-500 border-b pb-1 mb-1">OPSI TULANG</div>
+            <button onclick="window.app.duplicateBone()" class="text-left px-3 py-2 hover:bg-green-50 text-sm rounded text-green-700 font-medium"><i class="fas fa-clone mr-2"></i> Duplikat</button>
+            <button onclick="window.app.toggleBoneBind()" id="btnBindBone" class="text-left px-3 py-2 hover:bg-blue-50 text-sm rounded text-blue-700 font-medium"><i class="fas fa-link mr-2"></i> Gabungkan</button>
+            <button onclick="window.app.deleteBone()" class="text-left px-3 py-2 hover:bg-red-50 text-sm rounded text-red-600 font-medium"><i class="fas fa-trash mr-2"></i> Hapus</button>
+            <button onclick="document.getElementById('boneMenu').classList.add('hidden')" class="text-center text-xs text-gray-400 mt-1">Tutup</button>
+        </div>
+
+        <div id="rulerPopup" class="hidden absolute bottom-24 right-16 bg-gray-900 text-white p-2 rounded-lg z-50 shadow-xl border border-gray-600 flex gap-2">
+            <button onclick="window.app.setRuler('line')" class="w-10 h-10 rounded hover:bg-gray-700 flex items-center justify-center"><i class="fas fa-slash"></i></button>
+            <button onclick="window.app.setRuler('circle')" class="w-10 h-10 rounded hover:bg-gray-700 flex items-center justify-center"><i class="far fa-circle"></i></button>
+            <button onclick="window.app.setRuler('square')" class="w-10 h-10 rounded hover:bg-gray-700 flex items-center justify-center"><i class="far fa-square"></i></button>
+            <button onclick="window.app.setRuler(null)" class="w-10 h-10 rounded hover:bg-red-900 text-red-400 flex items-center justify-center"><i class="fas fa-times"></i></button>
+        </div>
+
+        <div id="layerPanel" class="hidden absolute bottom-24 left-1/2 transform -translate-x-1/2 w-64 bg-white text-gray-800 rounded-lg shadow-2xl overflow-hidden z-50 flex flex-col border border-gray-300" style="max-height: 50vh;">
+            <div class="bg-gray-100 p-3 border-b flex justify-between items-center"><span class="font-bold text-sm text-gray-700">Layers</span><button onclick="window.app.toggleLayerPanel()" class="text-gray-500 hover:text-red-500 px-2"><i class="fas fa-times"></i></button></div>
+            <div id="layerList" class="flex-1 overflow-y-auto bg-gray-50 min-h-[100px]"></div>
+            <div class="p-3 border-t bg-white"><button onclick="window.app.createLayer()" class="w-full bg-blue-600 text-white py-2 rounded text-sm font-bold shadow hover:bg-blue-700 flex justify-center items-center gap-2"><i class="fas fa-plus-circle"></i> Tambah Layer</button></div>
+        </div>
+
+        <div id="colorModal" class="hidden absolute inset-0 bg-black/60 z-[60] flex items-center justify-center backdrop-blur-sm">
+            <div class="color-card text-gray-800">
+                <div class="flex justify-between items-center mb-3">
+                    <div class="flex items-center gap-2"><div class="w-8 h-8 rounded border border-gray-300 shadow-sm alpha-checkered relative overflow-hidden"><div id="modalColorPreview" class="absolute inset-0 bg-black"></div></div><input type="text" id="hexInput" value="#000000" class="hex-input focus:outline-none focus:border-blue-500" onchange="window.app.setFromHex(this.value)"></div>
+                    <button onclick="document.getElementById('colorModal').classList.add('hidden')" class="w-8 h-8 flex items-center justify-center hover:bg-red-100 text-gray-500 hover:text-red-500 rounded"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="flex gap-1 mb-3">
+                    <div class="w-6 h-6 rounded bg-cyan-400 cursor-pointer border border-gray-200" onclick="window.app.setColor('#22d3ee')"></div><div class="w-6 h-6 rounded bg-gray-700 cursor-pointer border border-gray-200" onclick="window.app.setColor('#374151')"></div><div class="w-6 h-6 rounded bg-gray-200 cursor-pointer border border-gray-200" onclick="window.app.setColor('#e5e7eb')"></div><div class="w-6 h-6 rounded bg-gray-400 cursor-pointer border border-gray-200" onclick="window.app.setColor('#9ca3af')"></div><div class="w-6 h-6 rounded bg-amber-800 cursor-pointer border border-gray-200" onclick="window.app.setColor('#92400e')"></div>
+                </div>
+                <div style="position: relative; width: 220px; height: 220px; margin: 0 auto 15px auto;"><canvas id="wheelCanvas" width="220" height="220" class="absolute inset-0 cursor-crosshair"></canvas><canvas id="svCanvas" width="110" height="110" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 cursor-crosshair shadow-md border border-gray-300"></canvas><div id="hueMarker" class="absolute w-4 h-4 border-2 border-white rounded-full shadow pointer-events-none transform -translate-x-1/2 -translate-y-1/2" style="top: 10px; left: 50%;"></div><div id="svMarker" class="absolute w-4 h-4 border-2 border-white rounded-full shadow pointer-events-none transform -translate-x-1/2 -translate-y-1/2" style="top: 50%; left: 50%;"></div></div>
+                <div class="flex items-center gap-2 mb-2"><i class="fas fa-adjust text-gray-400 text-xs"></i><div class="h-4 flex-1 alpha-checkered rounded-full relative border border-gray-300"><div id="alphaGradient" class="absolute inset-0 rounded-full" style="background: linear-gradient(to right, transparent, black);"></div><input type="range" id="alphaSlider" min="0" max="100" value="100" class="absolute inset-0 w-full opacity-0 cursor-pointer"></div></div>
+            </div>
+        </div>
+
+        <div id="brushPopup" class="hidden absolute bottom-24 left-4 bg-gray-900 text-white p-3 rounded-lg w-56 z-50 shadow-xl border border-gray-600">
+            <div class="flex justify-between text-xs mb-2"><span>Ukuran Kuas</span><span id="brushSizeDisplay" class="text-blue-400 font-bold">25px</span></div><input type="range" id="brushSlider" min="0" max="100" value="50" oninput="window.app.setBrushSize(this.value)">
+        </div>
+        <div id="fpsPopup" class="hidden absolute bottom-24 left-16 bg-gray-900 text-white p-3 rounded-lg w-48 z-50 shadow-xl border border-gray-600">
+            <div class="flex justify-between text-xs mb-2"><span>Kecepatan</span><span id="fpsDisplay" class="text-yellow-400 font-bold">10 FPS</span></div><input type="range" id="fpsSlider" min="1" max="24" value="10" oninput="window.app.setFps(this.value)">
+        </div>
+
+        <!-- EXPORT MODAL -->
+        <div id="exportModal" class="hidden absolute inset-0 bg-black/80 z-[70] flex items-center justify-center p-4">
+            <div class="bg-white w-full max-w-sm rounded-lg p-5 shadow-2xl">
+                <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Export Animasi</h3>
+                <div class="space-y-3">
+                    <button onclick="window.app.downloadVideo()" class="w-full py-3 bg-blue-600 text-white rounded flex items-center justify-center gap-3 hover:bg-blue-700 active:scale-95 transition">
+                        <i class="fas fa-film text-xl"></i> 
+                        <div class="text-left">
+                            <div class="font-bold text-sm">Download Video</div>
+                            <div class="text-[10px] opacity-80">Format .webm (Bisa di play di galeri)</div>
+                        </div>
+                    </button>
+                    <button onclick="window.app.downloadJSON()" class="w-full py-3 bg-gray-100 text-gray-800 rounded flex items-center justify-center gap-3 hover:bg-gray-200 active:scale-95 transition border border-gray-300">
+                        <i class="fas fa-file-code text-xl"></i>
+                        <div class="text-left">
+                            <div class="font-bold text-sm">Simpan Proyek</div>
+                            <div class="text-[10px] text-gray-500">Backup data .json</div>
+                        </div>
+                    </button>
+                </div>
+                <div class="mt-4 text-center">
+                    <button onclick="window.app.toggleExportModal()" class="text-red-500 text-sm py-1 px-4 hover:bg-red-50 rounded">Tutup</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- BOTTOM BAR -->
+        <div class="bg-gray-800 w-full flex flex-col border-t border-gray-700 z-30 pb-1">
+            <div class="h-24 w-full bg-gray-200 border-b border-gray-400 relative group"><div id="timelineContainer" class="absolute inset-0 flex items-center px-2 gap-2 overflow-x-auto"></div><div class="absolute right-2 bottom-2 flex bg-gray-800 text-white rounded-lg shadow-lg overflow-hidden border border-gray-600 z-20"><button onclick="window.app.togglePlay()" id="btnPlay" class="w-10 h-8 flex items-center justify-center hover:bg-gray-700 border-r border-gray-600 transition"><i class="fas fa-play"></i></button><button onclick="window.app.addFrame()" class="w-10 h-8 flex items-center justify-center hover:bg-gray-700 bg-blue-600 transition"><i class="fas fa-plus"></i></button></div></div>
+            <div class="h-14 flex items-center justify-between px-3 gap-2 overflow-x-auto no-scrollbar bg-gray-900">
+                <div onclick="document.getElementById('fpsPopup').classList.toggle('hidden')" id="btnFps" class="w-9 h-9 rounded-full bg-black text-white border border-gray-500 flex items-center justify-center text-[10px] font-bold cursor-pointer shrink-0 hover:border-white transition">10</div>
+                <div onclick="document.getElementById('colorModal').classList.remove('hidden'); window.app.redrawColorWheel()" id="activeColorBtn" class="w-9 h-9 rounded bg-white alpha-checkered cursor-pointer shrink-0 border border-gray-500 overflow-hidden relative shadow-inner"><div id="activeColorFill" class="absolute inset-0 bg-black"></div></div>
+                <div class="w-px h-8 bg-gray-700 mx-1 shrink-0"></div>
+                <button onclick="window.app.setTool('brush')" id="btnBrush" class="tool-btn active shrink-0"><i class="fas fa-paint-brush"></i></button>
+                <button onclick="window.app.setTool('eraser')" id="btnEraser" class="tool-btn shrink-0"><i class="fas fa-eraser"></i></button>
+                <button onclick="window.app.setTool('bucket')" id="btnBucket" class="tool-btn shrink-0"><i class="fas fa-fill-drip"></i></button>
+                <button onclick="window.app.setTool('select')" id="btnSelect" class="tool-btn shrink-0"><i class="far fa-square"></i></button>
+                <button onclick="window.app.toggleRulerMenu()" id="btnRuler" class="tool-btn shrink-0"><i class="fas fa-ruler-combined"></i></button>
+                <button onclick="window.app.toggleLayerPanel()" class="tool-btn shrink-0 text-white relative"><i class="fas fa-layer-group"></i><div id="layerCountBadgeToolbar" class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full hidden"></div></button>
+            </div>
+            <div class="h-8 bg-black flex items-center justify-around text-gray-500 text-sm"><i class="fas fa-bars"></i><i class="far fa-square"></i><i class="fas fa-chevron-left"></i></div>
+        </div>
+    </div>
+
+    <script>
+        const homeView = document.getElementById('home-view');
+        const formView = document.getElementById('form-view');
+        const editorView = document.getElementById('editor-view');
+        const btnGotoForm = document.getElementById('btn-goto-form');
+        const btnCancelForm = document.getElementById('btn-cancel-form');
+        const btnConfirm = document.getElementById('btn-confirm-project');
+        const btnExitEditor = document.getElementById('btnExitEditor');
+        const projectListContainer = document.getElementById('project-list');
+        const emptyState = document.getElementById('empty-state');
+
+        let projects = JSON.parse(localStorage.getItem('micravise_projects')) || [];
+
+        function saveProjects() {
+            localStorage.setItem('micravise_projects', JSON.stringify(projects));
+        }
+
+        function renderProjects() {
+            projectListContainer.innerHTML = '';
+            if (projects.length === 0) {
+                emptyState.style.display = 'flex';
+            } else {
+                emptyState.style.display = 'none';
+                [...projects].reverse().forEach(p => {
+                    const card = document.createElement('div');
+                    card.className = 'project-card';
+                    card.innerHTML = `
+                        <div class="project-icon"><i class="fas fa-video text-xl"></i></div>
+                        <div class="flex-1 cursor-pointer" onclick="openProject(${p.id})">
+                            <h3 class="font-medium text-gray-900">${p.name}</h3>
+                            <p class="text-xs text-gray-500">${p.width}×${p.height}px • ${p.fps} FPS</p>
+                        </div>
+                        <button onclick="deleteProject(${p.id})" class="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-red-500 transition">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    `;
+                    projectListContainer.appendChild(card);
+                });
+            }
+        }
+
+        function deleteProject(id) {
+            if(confirm('Hapus project ini?')) {
+                projects = projects.filter(p => p.id !== id);
+                saveProjects();
+                renderProjects();
+            }
+        }
+
+        renderProjects();
+
+        btnGotoForm.addEventListener('click', () => { homeView.classList.add('hidden-view'); formView.classList.remove('hidden-view'); });
+        btnCancelForm.addEventListener('click', () => { formView.classList.add('hidden-view'); homeView.classList.remove('hidden-view'); });
+        
+        btnExitEditor.addEventListener('click', () => {
+            editorView.classList.add('hidden-view');
+            homeView.classList.remove('hidden-view');
+        });
+
+        btnConfirm.addEventListener('click', () => {
+            const name = document.getElementById('inp-project-name').value || "Tanpa Judul";
+            const w = parseInt(document.getElementById('inp-width').value) || 800;
+            const h = parseInt(document.getElementById('inp-height').value) || 600;
+            const fps = parseInt(document.getElementById('inp-fps').value) || 12;
+
+            const newProj = { id: Date.now(), name: name, width: w, height: h, fps: fps };
+            projects.push(newProj);
+            saveProjects();
+            renderProjects();
+
+            formView.classList.add('hidden-view'); 
+            editorView.classList.remove('hidden-view');
+            
+            startEditor(w, h, fps);
+        });
+
+        window.openProject = function(id) {
+            const proj = projects.find(p => p.id === id);
+            if(proj) {
+                homeView.classList.add('hidden-view');
+                editorView.classList.remove('hidden-view');
+                startEditor(proj.width, proj.height, proj.fps);
+            }
+        };
+
+        function startEditor(w, h, fps) {
+            const el = document.getElementById('canvas-container');
+            const newEl = el.cloneNode(true);
+            el.parentNode.replaceChild(newEl, el);
+            
+            setTimeout(() => { 
+                window.app = new App(w, h, fps); 
+            }, 50);
+        }
+
+        class App {
+            constructor(customW, customH, customFps) {
+                this.zoomWrapper = document.getElementById('zoomWrapper');
+                this.layerStack = document.getElementById('layerStack');
+                this.overlayCanvas = document.getElementById('overlayCanvas');
+                this.onionCanvas = document.getElementById('onionCanvas');
+                this.boneRenderCanvas = document.getElementById('boneRenderCanvas'); 
+                this.overlayCtx = this.overlayCanvas.getContext('2d');
+                this.onionCtx = this.onionCanvas.getContext('2d');
+                this.boneRenderCtx = this.boneRenderCanvas.getContext('2d');
+                
+                this.width = customW || 800;
+                this.height = customH || 600;
+                
+                this.layerStack.innerHTML = '';
+                
+                this.layers = []; this.layerCounter = 0; this.activeLayerIndex = -1;
+                this.frames = []; this.currentFrameIndex = 0;
+                this.undoStack = []; this.redoStack = []; this.MAX_UNDO = 15;
+                this.isPlaying = false; this.playInterval = null; 
+                this.fps = customFps || 12;
+                
+                document.getElementById('btnFps').innerText = this.fps;
+                document.getElementById('fpsDisplay').innerText = this.fps + ' FPS';
+                document.getElementById('fpsSlider').value = this.fps;
+
+                this.isDrawing = false; this.currentTool = 'brush'; this.rulerType = null; this.brushSize = 25;
+                this.color = { h: 0, s: 0, l: 0, a: 1 }; this.brushColorStr = 'rgba(0,0,0,1)';
+                
+                this.isSelecting = false; this.selectionStart = null; this.selectionRect = null; this.startPoint = {x:0, y:0};
+                this.floatingSelection = null; this.isDraggingSelection = false;
+                this.dragStartPos = {x:0, y:0}; this.initialRectPos = {x:0, y:0};
+
+                this.bones = []; this.selectedBone = null; this.isDraggingBone = false; this.boneCaptureData = null;
+                this.clipboard = null;
+
+                // --- IMPORT RESIZE STATE ---
+                this.importingImage = null; // { img, x, y, w, h }
+                this.isResizingImport = false;
+                this.importResizeHandle = null; // 'tl','tr','bl','br'
+                this.importDragOffset = {x:0, y:0};
+
+                // --- ZOOM & PAN ---
+                this.scale = 1; 
+                this.panX = 0; this.panY = 0; 
+                this.isGesturing = false; this.lastDist = 0; this.startScale = 1; this.startPan = {x:0, y:0};
+                
+                this.fitToScreen();
+                this.resizeCanvases(); 
+                this.initEvents(); 
+                this.initColorPicker(); 
+                this.addFrame(); 
+                this.updateLayerUI();
+            }
+
+            fitToScreen() {
+                const container = document.getElementById('canvas-container');
+                const cw = container.clientWidth;
+                const ch = container.clientHeight;
+                const targetW = cw * 0.9;
+                const targetH = ch * 0.9;
+                const scaleW = targetW / this.width;
+                const scaleH = targetH / this.height;
+                this.scale = Math.min(scaleW, scaleH);
+                if (this.scale < 0.1) this.scale = 0.1;
+                this.updateTransform();
+            }
+
+            resizeCanvases() {
+                this.zoomWrapper.style.width = this.width + 'px';
+                this.zoomWrapper.style.height = this.height + 'px';
+                this.zoomWrapper.style.maxWidth = 'none'; 
+                [this.overlayCanvas, this.onionCanvas, this.boneRenderCanvas].forEach(c => { c.width = this.width; c.height = this.height; });
+            }
+            
+            updateTransform() {
+                this.zoomWrapper.style.transform = `translate(${this.panX}px, ${this.panY}px) scale(${this.scale})`;
+                const ind = document.getElementById('zoomIndicator');
+                ind.innerText = Math.round(this.scale * 100) + '%';
+                ind.style.opacity = '1';
+                clearTimeout(this.zoomTimeout);
+                this.zoomTimeout = setTimeout(() => ind.style.opacity = '0', 2000);
+            }
+
+            getPointerPos(e) {
+                const rect = this.zoomWrapper.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                const x = (clientX - rect.left) * (this.width / rect.width);
+                const y = (clientY - rect.top) * (this.height / rect.height);
+                return { x, y };
+            }
+
+            initEvents() {
+                const container = document.getElementById('canvas-container');
+                const canvasEl = this.overlayCanvas;
+
+                const fileInput = document.getElementById('imgImportInput');
+                if(fileInput) {
+                    fileInput.addEventListener('change', (e) => this.handleImageImport(e));
+                }
+
+                container.addEventListener('wheel', (e) => {
+                    e.preventDefault();
+                    const delta = e.deltaY * -0.001;
+                    const newScale = Math.min(Math.max(0.1, this.scale + delta), 10);
+                    this.scale = newScale;
+                    this.updateTransform();
+                }, { passive: false });
+
+                // --- TOUCH START ---
+                container.addEventListener('touchstart', (e) => {
+                    if (e.touches.length === 2) {
+                        this.isGesturing = true;
+                        this.lastDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                        this.startScale = this.scale;
+                        this.lastCenter = { x: (e.touches[0].clientX + e.touches[1].clientX) / 2, y: (e.touches[0].clientY + e.touches[1].clientY) / 2 };
+                        this.startPan = { x: this.panX, y: this.panY };
+                        return;
+                    } 
+                    
+                    if (this.isPlaying || this.isGesturing) return;
+                    if (e.target !== canvasEl && e.target !== this.zoomWrapper) return;
+                    
+                    e.preventDefault();
+                    this.hidePopups();
+                    const pos = this.getPointerPos(e);
+                    const x = pos.x, y = pos.y;
+                    this.startPoint = {x, y};
+
+                    // --- IMPORT RESIZE LOGIC START ---
+                    if (this.importingImage) {
+                        const handleSize = 15 / this.scale;
+                        const {x: ix, y: iy, w: iw, h: ih} = this.importingImage;
+                        
+                        // Check corners
+                        if (Math.hypot(x - ix, y - iy) < handleSize) { this.isResizingImport = true; this.importResizeHandle = 'tl'; return; }
+                        if (Math.hypot(x - (ix+iw), y - iy) < handleSize) { this.isResizingImport = true; this.importResizeHandle = 'tr'; return; }
+                        if (Math.hypot(x - ix, y - (iy+ih)) < handleSize) { this.isResizingImport = true; this.importResizeHandle = 'bl'; return; }
+                        if (Math.hypot(x - (ix+iw), y - (iy+ih)) < handleSize) { this.isResizingImport = true; this.importResizeHandle = 'br'; return; }
+
+                        // Check body (move)
+                        if (x >= ix && x <= ix + iw && y >= iy && y <= iy + ih) {
+                            this.isResizingImport = true; // reusing flag for drag
+                            this.importResizeHandle = 'move';
+                            this.importDragOffset = { x: x - ix, y: y - iy };
+                            return;
+                        }
+                        return; // Ignore other touches while importing
+                    }
+                    // --- IMPORT RESIZE LOGIC END ---
+
+                    if (this.currentTool === 'select' && this.selectionRect) {
+                        if (x >= this.selectionRect.x && x <= this.selectionRect.x + this.selectionRect.w &&
+                            y >= this.selectionRect.y && y <= this.selectionRect.y + this.selectionRect.h) {
+                            
+                            this.isDraggingSelection = true;
+                            this.dragStartPos = {x, y};
+                            this.initialRectPos = {x: this.selectionRect.x, y: this.selectionRect.y};
+                            
+                            if (!this.floatingSelection) {
+                                 const ctx = this.layers[this.activeLayerIndex].ctx;
+                                 const rx = Math.floor(this.selectionRect.x);
+                                 const ry = Math.floor(this.selectionRect.y);
+                                 const rw = Math.floor(this.selectionRect.w);
+                                 const rh = Math.floor(this.selectionRect.h);
+                                 
+                                 if(rw > 0 && rh > 0) {
+                                     this.saveStateToUndo(); 
+                                     const data = ctx.getImageData(rx, ry, rw, rh);
+                                     this.floatingSelection = document.createElement('canvas');
+                                     this.floatingSelection.width = rw;
+                                     this.floatingSelection.height = rh;
+                                     this.floatingSelection.getContext('2d').putImageData(data, 0, 0);
+                                     ctx.clearRect(rx, ry, rw, rh);
+                                 }
+                            }
+                            document.getElementById('selectionMenu').classList.add('hidden');
+                            return; 
+                        } else {
+                            this.commitSelection();
+                        }
+                    }
+
+                    if (this.currentTool === 'bone') {
+                        const clickedBone = this.bones.find(b => Math.hypot(b.x - x, b.y - y) < 20);
+                        if (clickedBone) {
+                            this.selectedBone = clickedBone;
+                            this.isDraggingBone = true;
+                            if (this.selectedBone.isBound) {
+                                const r = 60; const ctx = this.layers[this.activeLayerIndex].ctx;
+                                const imgData = ctx.getImageData(this.selectedBone.x - r, this.selectedBone.y - r, r*2, r*2);
+                                this.boneCaptureData = { img: imgData, offsetX: this.selectedBone.x - x, offsetY: this.selectedBone.y - y, radius: r };
+                                ctx.save(); ctx.globalCompositeOperation = 'destination-out'; ctx.beginPath(); ctx.arc(this.selectedBone.x, this.selectedBone.y, r, 0, Math.PI*2); ctx.fill(); ctx.restore();
+                            }
+                            const menu = document.getElementById('boneMenu'); menu.style.left = (e.touches[0].clientX + 20) + 'px'; menu.style.top = (e.touches[0].clientY) + 'px'; menu.classList.remove('hidden'); this.updateBoneMenuUI();
+                        } else {
+                            if (this.bones.length === 0) {
+                                this.bones.push({ x, y, id: Date.now(), parentId: null, skin: null });
+                                this.drawBones();
+                            } else {
+                                this.selectedBone = null;
+                                document.getElementById('boneMenu').classList.add('hidden');
+                                this.drawBones();
+                            }
+                        }
+                        return;
+                    }
+
+                    if(this.currentTool === 'select') {
+                        this.isSelecting = true; this.selectionStart = {x, y}; this.selectionRect = null;
+                        document.getElementById('selectionMenu').classList.add('hidden');
+                        this.overlayCtx.clearRect(0,0,this.width, this.height);
+                        return;
+                    }
+                    if(this.rulerType) { this.isRulerDrawing = true; return; }
+                    if(this.currentTool === 'bucket') {
+                        this.saveStateToUndo();
+                        this.floodFill(Math.round(x), Math.round(y), this.brushColorStr);
+                        return;
+                    }
+                    this.isDrawing = true; this.lastX = x; this.lastY = y;
+                    this.saveStateToUndo();
+
+                }, { passive: false });
+
+                // --- TOUCH MOVE ---
+                container.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+
+                    if (this.isGesturing && e.touches.length === 2) {
+                        const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                        if(this.lastDist > 0) { 
+                            const newScale = this.startScale * (dist / this.lastDist);
+                            this.scale = Math.min(Math.max(0.1, newScale), 10); 
+                        }
+                        const center = { x: (e.touches[0].clientX + e.touches[1].clientX) / 2, y: (e.touches[0].clientY + e.touches[1].clientY) / 2 };
+                        this.panX = this.startPan.x + (center.x - this.lastCenter.x); this.panY = this.startPan.y + (center.y - this.lastCenter.y);
+                        this.updateTransform(); return;
+                    }
+
+                    const pos = this.getPointerPos(e);
+                    const x = pos.x, y = pos.y;
+
+                    // --- IMPORT RESIZE LOGIC ---
+                    if (this.importingImage && this.isResizingImport) {
+                        const img = this.importingImage;
+                        if (this.importResizeHandle === 'move') {
+                            img.x = x - this.importDragOffset.x;
+                            img.y = y - this.importDragOffset.y;
+                        } else if (this.importResizeHandle === 'br') {
+                            img.w = x - img.x; img.h = y - img.y;
+                        } else if (this.importResizeHandle === 'bl') {
+                            const right = img.x + img.w; img.x = x; img.w = right - x; img.h = y - img.y;
+                        } else if (this.importResizeHandle === 'tr') {
+                            const bottom = img.y + img.h; img.y = y; img.h = bottom - y; img.w = x - img.x;
+                        } else if (this.importResizeHandle === 'tl') {
+                            const right = img.x + img.w; const bottom = img.y + img.h;
+                            img.x = x; img.y = y; img.w = right - x; img.h = bottom - y;
+                        }
+                        // Min size constraint
+                        if(img.w < 10) img.w = 10; if(img.h < 10) img.h = 10;
+                        this.drawImportOverlay();
+                        return;
+                    }
+                    if (this.importingImage) return;
+
+                    if(!this.isDrawing && !this.isSelecting && !this.isRulerDrawing && !this.isDraggingBone && !this.isDraggingSelection) return;
+
+                    if (this.isDraggingSelection && this.floatingSelection) {
+                        const dx = x - this.dragStartPos.x;
+                        const dy = y - this.dragStartPos.y;
+                        this.selectionRect.x = this.initialRectPos.x + dx;
+                        this.selectionRect.y = this.initialRectPos.y + dy;
+                        
+                        this.overlayCtx.clearRect(0,0,this.width, this.height);
+                        this.overlayCtx.drawImage(this.floatingSelection, this.selectionRect.x, this.selectionRect.y);
+                        this.overlayCtx.save();
+                        this.overlayCtx.setLineDash([5,5]);
+                        this.overlayCtx.strokeStyle = '#000';
+                        this.overlayCtx.lineWidth = 1/this.scale;
+                        this.overlayCtx.strokeRect(this.selectionRect.x, this.selectionRect.y, this.selectionRect.w, this.selectionRect.h);
+                        this.overlayCtx.restore();
+                        return;
+                    }
+
+                    if (this.currentTool === 'bone' && this.isDraggingBone && this.selectedBone) {
+                        document.getElementById('boneMenu').classList.add('hidden');
+                        this.selectedBone.x = x; this.selectedBone.y = y;
+                        this.drawBones(true); return;
+                    }
+                    
+                    if(this.isSelecting) {
+                        this.overlayCtx.clearRect(0,0,this.width, this.height);
+                        const w = x - this.selectionStart.x; const h = y - this.selectionStart.y;
+                        this.selectionRect = { x: w<0?x:this.selectionStart.x, y: h<0?y:this.selectionStart.y, w:Math.abs(w), h:Math.abs(h) };
+                        this.overlayCtx.save(); this.overlayCtx.setLineDash([5,5]); this.overlayCtx.strokeStyle='#000'; this.overlayCtx.lineWidth=1 / this.scale;
+                        this.overlayCtx.strokeRect(this.selectionRect.x, this.selectionRect.y, this.selectionRect.w, this.selectionRect.h);
+                        this.overlayCtx.restore();
+                        return;
+                    }
+                    if(this.isRulerDrawing) {
+                        this.overlayCtx.clearRect(0,0,this.width, this.height);
+                        this.drawShape(this.overlayCtx, this.startPoint.x, this.startPoint.y, x, y, this.rulerType, true);
+                        return;
+                    }
+                    if(this.isDrawing) {
+                        const ctx = this.layers[this.activeLayerIndex].ctx;
+                        ctx.beginPath(); ctx.moveTo(this.lastX, this.lastY); ctx.lineTo(x, y);
+                        ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.lineWidth = this.brushSize;
+                        if(this.currentTool === 'eraser') ctx.globalCompositeOperation = 'destination-out';
+                        else { ctx.globalCompositeOperation = 'source-over'; ctx.strokeStyle = this.brushColorStr; }
+                        ctx.stroke(); this.lastX = x; this.lastY = y;
+                    }
+                }, { passive: false });
+
+                const end = (e) => {
+                    if (this.isGesturing && e.touches.length < 2) { this.isGesturing = false; return; }
+                    
+                    if (this.importingImage) {
+                        this.isResizingImport = false;
+                        this.importResizeHandle = null;
+                        return;
+                    }
+
+                    let x = this.lastX, y = this.lastY;
+                    if(e.changedTouches && e.changedTouches.length > 0) {
+                        const p = this.getPointerPos({touches: [e.changedTouches[0]]});
+                        x = p.x; y = p.y;
+                    } else if (e.clientX) {
+                        const p = this.getPointerPos(e); x = p.x; y = p.y;
+                    }
+
+                    if (this.isDraggingSelection) {
+                        this.isDraggingSelection = false;
+                        const menu = document.getElementById('selectionMenu');
+                        const cx = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+                        const cy = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+                        menu.style.left = cx + 'px';
+                        menu.style.top = cy + 'px';
+                        menu.classList.remove('hidden');
+                        return;
+                    }
+
+                    if (this.currentTool === 'bone' && this.isDraggingBone) {
+                        this.isDraggingBone = false;
+                        if (this.selectedBone && this.selectedBone.isBound && this.boneCaptureData) {
+                            const ctx = this.layers[this.activeLayerIndex].ctx;
+                            const d = this.boneCaptureData;
+                            const tempC = document.createElement('canvas'); tempC.width = d.img.width; tempC.height = d.img.height;
+                            tempC.getContext('2d').putImageData(d.img, 0, 0);
+                            ctx.drawImage(tempC, this.selectedBone.x - d.radius, this.selectedBone.y - d.radius);
+                            this.boneCaptureData = null; 
+                        }
+                        if (this.selectedBone) {
+                            const menu = document.getElementById('boneMenu');
+                            menu.style.left = (e.changedTouches ? e.changedTouches[0].clientX : e.clientX) + 20 + 'px'; 
+                            menu.style.top = (e.changedTouches ? e.changedTouches[0].clientY : e.clientY) + 'px'; 
+                            menu.classList.remove('hidden');
+                        }
+                        this.saveCurrentFrameData(); this.drawBones(); return;
+                    }
+                    
+                    if(this.isSelecting) {
+                        this.isSelecting = false;
+                        if(this.selectionRect && this.selectionRect.w > 5) {
+                            const menu = document.getElementById('selectionMenu');
+                            menu.style.left = (e.changedTouches ? e.changedTouches[0].clientX : e.clientX) + 'px';
+                            menu.style.top = (e.changedTouches ? e.changedTouches[0].clientY : e.clientY) + 'px';
+                            menu.classList.remove('hidden');
+                            if(this.clipboard) document.getElementById('btnPaste').classList.remove('hidden');
+                        }
+                    } else if(this.isRulerDrawing) {
+                        this.isRulerDrawing = false;
+                        this.overlayCtx.clearRect(0,0,this.width, this.height);
+                        this.saveStateToUndo();
+                        const ctx = this.layers[this.activeLayerIndex].ctx;
+                        this.drawShape(ctx, this.startPoint.x, this.startPoint.y, x, y, this.rulerType, false);
+                        this.saveCurrentFrameData();
+                    } else if(this.isDrawing) { this.isDrawing = false; this.saveCurrentFrameData(); }
+                };
+
+                container.addEventListener('touchend', end); container.addEventListener('mouseup', end);
+                
+                container.addEventListener('mousedown', (e) => {
+                    if (e.target !== canvasEl && e.target !== this.zoomWrapper) return;
+                    const fakeE = { touches: [{clientX: e.clientX, clientY: e.clientY}], preventDefault: ()=>{} };
+                    this.hidePopups();
+                    const pos = this.getPointerPos(fakeE);
+                    const x = pos.x, y = pos.y;
+                    this.startPoint = {x, y};
+                    
+                    // --- IMPORT RESIZE MOUSE START ---
+                    if (this.importingImage) {
+                         const handleSize = 15 / this.scale;
+                         const {x: ix, y: iy, w: iw, h: ih} = this.importingImage;
+                         if (Math.hypot(x - ix, y - iy) < handleSize) { this.isResizingImport = true; this.importResizeHandle = 'tl'; return; }
+                         if (Math.hypot(x - (ix+iw), y - iy) < handleSize) { this.isResizingImport = true; this.importResizeHandle = 'tr'; return; }
+                         if (Math.hypot(x - ix, y - (iy+ih)) < handleSize) { this.isResizingImport = true; this.importResizeHandle = 'bl'; return; }
+                         if (Math.hypot(x - (ix+iw), y - (iy+ih)) < handleSize) { this.isResizingImport = true; this.importResizeHandle = 'br'; return; }
+                         if (x >= ix && x <= ix + iw && y >= iy && y <= iy + ih) {
+                             this.isResizingImport = true; this.importResizeHandle = 'move';
+                             this.importDragOffset = { x: x - ix, y: y - iy };
+                             return;
+                         }
+                         return;
+                    }
+
+                    if (this.currentTool === 'select' && this.selectionRect) {
+                        if (x >= this.selectionRect.x && x <= this.selectionRect.x + this.selectionRect.w &&
+                            y >= this.selectionRect.y && y <= this.selectionRect.y + this.selectionRect.h) {
+                            this.isDraggingSelection = true;
+                            this.dragStartPos = {x, y};
+                            this.initialRectPos = {x: this.selectionRect.x, y: this.selectionRect.y};
+                            if (!this.floatingSelection) {
+                                 const ctx = this.layers[this.activeLayerIndex].ctx;
+                                 const rx = Math.floor(this.selectionRect.x), ry = Math.floor(this.selectionRect.y), rw = Math.floor(this.selectionRect.w), rh = Math.floor(this.selectionRect.h);
+                                 if(rw > 0 && rh > 0) {
+                                     this.saveStateToUndo();
+                                     const data = ctx.getImageData(rx, ry, rw, rh);
+                                     this.floatingSelection = document.createElement('canvas'); this.floatingSelection.width = rw; this.floatingSelection.height = rh;
+                                     this.floatingSelection.getContext('2d').putImageData(data, 0, 0);
+                                     ctx.clearRect(rx, ry, rw, rh);
+                                 }
+                            }
+                            document.getElementById('selectionMenu').classList.add('hidden');
+                            return;
+                        } else { this.commitSelection(); }
+                    }
+
+                    if(this.currentTool === 'select') { this.isSelecting = true; this.selectionStart = {x,y}; this.selectionRect = null; document.getElementById('selectionMenu').classList.add('hidden'); this.overlayCtx.clearRect(0,0,this.width, this.height); return; }
+                    if(this.currentTool === 'bucket') { this.saveStateToUndo(); this.floodFill(Math.round(x), Math.round(y), this.brushColorStr); return; }
+                    this.isDrawing = true; this.lastX = x; this.lastY = y; this.saveStateToUndo();
+                });
+                
+                container.addEventListener('mousemove', (e) => {
+                    if (this.importingImage && this.isResizingImport) {
+                        const fakeE = { touches: [{clientX: e.clientX, clientY: e.clientY}], preventDefault: ()=>{} };
+                        const pos = this.getPointerPos(fakeE);
+                        const x = pos.x, y = pos.y;
+                        const img = this.importingImage;
+                        if (this.importResizeHandle === 'move') { img.x = x - this.importDragOffset.x; img.y = y - this.importDragOffset.y; }
+                        else if (this.importResizeHandle === 'br') { img.w = x - img.x; img.h = y - img.y; }
+                        else if (this.importResizeHandle === 'bl') { const right = img.x + img.w; img.x = x; img.w = right - x; img.h = y - img.y; }
+                        else if (this.importResizeHandle === 'tr') { const bottom = img.y + img.h; img.y = y; img.h = bottom - y; img.w = x - img.x; }
+                        else if (this.importResizeHandle === 'tl') { const right = img.x + img.w; const bottom = img.y + img.h; img.x = x; img.y = y; img.w = right - x; img.h = bottom - y; }
+                        if(img.w < 10) img.w = 10; if(img.h < 10) img.h = 10;
+                        this.drawImportOverlay();
+                        return;
+                    }
+                    if (this.importingImage) return;
+
+                    if (this.isDraggingSelection && this.floatingSelection) {
+                        const pos = this.getPointerPos(e);
+                        const x = pos.x, y = pos.y;
+                        const dx = x - this.dragStartPos.x;
+                        const dy = y - this.dragStartPos.y;
+                        this.selectionRect.x = this.initialRectPos.x + dx;
+                        this.selectionRect.y = this.initialRectPos.y + dy;
+                        this.overlayCtx.clearRect(0,0,this.width, this.height);
+                        this.overlayCtx.drawImage(this.floatingSelection, this.selectionRect.x, this.selectionRect.y);
+                        this.overlayCtx.save(); this.overlayCtx.setLineDash([5,5]); this.overlayCtx.strokeStyle = '#000'; this.overlayCtx.lineWidth = 1/this.scale;
+                        this.overlayCtx.strokeRect(this.selectionRect.x, this.selectionRect.y, this.selectionRect.w, this.selectionRect.h); this.overlayCtx.restore();
+                        return;
+                    }
+
+                    if(!this.isDrawing && !this.isSelecting) return;
+                    const fakeE = { touches: [{clientX: e.clientX, clientY: e.clientY}], preventDefault: ()=>{} };
+                    const pos = this.getPointerPos(fakeE);
+                    const x = pos.x, y = pos.y;
+                    
+                    if(this.isSelecting) {
+                        this.overlayCtx.clearRect(0,0,this.width, this.height);
+                        const w = x - this.selectionStart.x; const h = y - this.selectionStart.y;
+                        this.selectionRect = { x: w<0?x:this.selectionStart.x, y: h<0?y:this.selectionStart.y, w:Math.abs(w), h:Math.abs(h) };
+                        this.overlayCtx.save(); this.overlayCtx.setLineDash([5,5]); this.overlayCtx.strokeStyle='#000'; this.overlayCtx.lineWidth=1;
+                        this.overlayCtx.strokeRect(this.selectionRect.x, this.selectionRect.y, this.selectionRect.w, this.selectionRect.h);
+                        this.overlayCtx.restore();
+                        return;
+                    }
+                    if(this.isDrawing) {
+                        const ctx = this.layers[this.activeLayerIndex].ctx;
+                        ctx.beginPath(); ctx.moveTo(this.lastX, this.lastY); ctx.lineTo(x, y);
+                        ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.lineWidth = this.brushSize;
+                        if(this.currentTool === 'eraser') ctx.globalCompositeOperation = 'destination-out';
+                        else { ctx.globalCompositeOperation = 'source-over'; ctx.strokeStyle = this.brushColorStr; }
+                        ctx.stroke(); this.lastX = x; this.lastY = y;
+                    }
+                });
+
+                document.getElementById('btnCopy').onclick = (e) => { e.stopPropagation(); this.copySelection(); };
+                document.getElementById('btnCut').onclick = (e) => { e.stopPropagation(); this.cutSelection(); };
+                document.getElementById('btnPaste').onclick = (e) => { e.stopPropagation(); this.paste(); };
+                document.getElementById('btnCancelSel').onclick = (e) => { e.stopPropagation(); this.commitSelection(); };
+            }
+
+            // --- SELECTION TOOLS & LOGIC ---
+            commitSelection() {
+                if (this.floatingSelection && this.selectionRect) {
+                    const ctx = this.layers[this.activeLayerIndex].ctx;
+                    ctx.drawImage(this.floatingSelection, Math.floor(this.selectionRect.x), Math.floor(this.selectionRect.y));
+                    this.floatingSelection = null;
+                    this.saveCurrentFrameData();
+                }
+                this.selectionRect = null;
+                this.overlayCtx.clearRect(0,0,this.width, this.height);
+                document.getElementById('selectionMenu').classList.add('hidden');
+            }
+
+            copySelection() {
+                if(!this.selectionRect || this.selectionRect.w <= 0 || this.selectionRect.h <= 0) return;
+                let c;
+                if (this.floatingSelection) {
+                     c = document.createElement('canvas'); c.width = this.floatingSelection.width; c.height = this.floatingSelection.height;
+                     c.getContext('2d').drawImage(this.floatingSelection, 0, 0);
+                } else {
+                    const rx = Math.floor(this.selectionRect.x); const ry = Math.floor(this.selectionRect.y); const rw = Math.floor(this.selectionRect.w); const rh = Math.floor(this.selectionRect.h);
+                    const ctx = this.layers[this.activeLayerIndex].ctx;
+                    const d = ctx.getImageData(rx, ry, rw, rh);
+                    c = document.createElement('canvas'); c.width = rw; c.height = rh; c.getContext('2d').putImageData(d, 0, 0);
+                }
+                this.clipboard = c;
+                document.getElementById('selectionMenu').classList.add('hidden'); 
+                document.getElementById('btnPaste').classList.remove('hidden');
+            }
+
+            cutSelection() {
+                if(!this.selectionRect || this.selectionRect.w <= 0) return;
+                
+                if (this.floatingSelection) {
+                     const c = document.createElement('canvas'); c.width = this.floatingSelection.width; c.height = this.floatingSelection.height;
+                     c.getContext('2d').drawImage(this.floatingSelection, 0, 0);
+                     this.clipboard = c;
+                     this.floatingSelection = null;
+                } else {
+                    this.saveStateToUndo();
+                    const rx = Math.floor(this.selectionRect.x); const ry = Math.floor(this.selectionRect.y); const rw = Math.floor(this.selectionRect.w); const rh = Math.floor(this.selectionRect.h);
+                    const ctx = this.layers[this.activeLayerIndex].ctx;
+                    const d = ctx.getImageData(rx, ry, rw, rh);
+                    const c = document.createElement('canvas'); c.width = rw; c.height = rh; c.getContext('2d').putImageData(d, 0, 0);
+                    this.clipboard = c; 
+                    ctx.clearRect(rx, ry, rw, rh);
+                    this.saveCurrentFrameData();
+                }
+                
+                document.getElementById('btnPaste').classList.remove('hidden');
+                this.selectionRect = null; 
+                this.overlayCtx.clearRect(0,0,this.width, this.height); 
+                document.getElementById('selectionMenu').classList.add('hidden');
+            }
+
+            paste() {
+                if(!this.clipboard) return;
+                this.commitSelection();
+                this.saveStateToUndo();
+                const ctx = this.layers[this.activeLayerIndex].ctx;
+                const cx = (this.width - this.clipboard.width) / 2; const cy = (this.height - this.clipboard.height) / 2;
+                ctx.drawImage(this.clipboard, cx, cy);
+                this.saveCurrentFrameData();
+                document.getElementById('selectionMenu').classList.add('hidden');
+            }
+
+            drawBones(drawPreview = false) {
+                this.boneRenderCtx.clearRect(0, 0, this.width, this.height);
+                this.bones.forEach(b => {
+                    if (b.skin && b.skin.data && !b.skin.imgElement) { const img = new Image(); img.src = b.skin.data; b.skin.imgElement = img; }
+                    if (b.skin && b.skin.imgElement && b.parentId) {
+                        const parent = this.bones.find(p => p.id === b.parentId);
+                        if (parent) {
+                            const currDx = b.x - parent.x; const currDy = b.y - parent.y;
+                            const currDist = Math.hypot(currDx, currDy); const currAngle = Math.atan2(currDy, currDx);
+                            const scaleX = currDist / b.skin.len; 
+                            this.boneRenderCtx.save(); this.boneRenderCtx.translate(parent.x, parent.y); this.boneRenderCtx.rotate(currAngle);
+                            this.boneRenderCtx.scale(scaleX, 1);
+                            if(b.skin.imgElement.complete) { this.boneRenderCtx.drawImage(b.skin.imgElement, 0, -b.skin.h/2); }
+                            this.boneRenderCtx.restore();
+                        }
+                    }
+                });
+
+                if (this.currentTool !== 'bone') { this.overlayCtx.clearRect(0,0,this.width, this.height); return; }
+                this.overlayCtx.clearRect(0,0,this.width, this.height);
+                
+                if (drawPreview && this.selectedBone && this.selectedBone.isBound && this.boneCaptureData) {
+                    const d = this.boneCaptureData;
+                    const tempC = document.createElement('canvas'); tempC.width = d.img.width; tempC.height = d.img.height;
+                    tempC.getContext('2d').putImageData(d.img, 0, 0);
+                    this.overlayCtx.save(); this.overlayCtx.globalAlpha = 0.8;
+                    this.overlayCtx.drawImage(tempC, this.selectedBone.x - d.radius, this.selectedBone.y - d.radius);
+                    this.overlayCtx.restore();
+                }
+                this.bones.forEach(b => {
+                    if (b.parentId) {
+                        const parent = this.bones.find(p => p.id === b.parentId);
+                        if (parent) {
+                            this.overlayCtx.beginPath(); this.overlayCtx.moveTo(parent.x, parent.y); this.overlayCtx.lineTo(b.x, b.y);
+                            this.overlayCtx.strokeStyle = 'black'; this.overlayCtx.lineWidth = 4 / this.scale; this.overlayCtx.stroke(); 
+                            this.overlayCtx.strokeStyle = 'white'; this.overlayCtx.lineWidth = 1 / this.scale; this.overlayCtx.stroke();
+                        }
+                    }
+                });
+                this.bones.forEach(b => {
+                    const r = 10 / this.scale; 
+                    this.overlayCtx.beginPath(); this.overlayCtx.arc(b.x, b.y, r, 0, Math.PI * 2); this.overlayCtx.fillStyle = '#00ff00'; this.overlayCtx.fill(); this.overlayCtx.stroke();
+                    if (b === this.selectedBone) { this.overlayCtx.beginPath(); this.overlayCtx.arc(b.x, b.y, r * 1.4, 0, Math.PI*2); this.overlayCtx.strokeStyle = 'white'; this.overlayCtx.lineWidth = 2 / this.scale; this.overlayCtx.stroke(); }
+                    this.overlayCtx.beginPath(); this.overlayCtx.arc(b.x, b.y, 3 / this.scale, 0, Math.PI*2); this.overlayCtx.fillStyle = b.skin ? 'red' : 'white'; this.overlayCtx.fill();
+                });
+            }
+
+            duplicateBone() {
+                if (!this.selectedBone) return;
+                const newBone = { x: this.selectedBone.x + 50, y: this.selectedBone.y, id: Date.now(), parentId: this.selectedBone.id, skin: null };
+                this.bones.push(newBone); this.selectedBone = newBone; 
+                this.saveCurrentFrameData(); this.drawBones(); document.getElementById('boneMenu').classList.add('hidden'); 
+            }
+
+            deleteBone() {
+                if (!this.selectedBone) return;
+                if(this.selectedBone.skin) this.restoreSkin(this.selectedBone);
+                this.bones.forEach(b => { if(b.parentId === this.selectedBone.id) { if(b.skin) this.restoreSkin(b); b.parentId = null; } });
+                this.bones = this.bones.filter(b => b !== this.selectedBone);
+                this.selectedBone = null; this.saveCurrentFrameData(); this.drawBones(); document.getElementById('boneMenu').classList.add('hidden');
+            }
+
+            toggleBoneBind() {
+                if (!this.selectedBone || !this.selectedBone.parentId) return;
+                const parent = this.bones.find(p => p.id === this.selectedBone.parentId); if(!parent) return;
+                if (this.selectedBone.skin) { this.restoreSkin(this.selectedBone); this.selectedBone.skin = null; } else {
+                    const dx = this.selectedBone.x - parent.x; const dy = this.selectedBone.y - parent.y;
+                    const dist = Math.hypot(dx, dy); const angle = Math.atan2(dy, dx);
+                    const thickness = 60; const padding = 10; const capLen = dist + padding*2;
+                    const srcCtx = this.layers[this.activeLayerIndex].ctx;
+                    const tempC = document.createElement('canvas'); tempC.width = capLen; tempC.height = thickness; const tCtx = tempC.getContext('2d');
+                    tCtx.translate(padding, thickness/2); tCtx.rotate(-angle); tCtx.translate(-parent.x, -parent.y); tCtx.drawImage(this.layers[this.activeLayerIndex].canvas, 0, 0);
+                    srcCtx.save(); srcCtx.translate(parent.x, parent.y); srcCtx.rotate(angle); srcCtx.clearRect(-padding, -thickness/2, dist + padding*2, thickness); srcCtx.restore();
+                    this.selectedBone.skin = { data: tempC.toDataURL(), len: dist, h: thickness };
+                }
+                this.saveCurrentFrameData(); this.updateBoneMenuUI(); this.drawBones();
+            }
+            
+            restoreSkin(bone) {
+                if (!bone.skin || !bone.parentId) return;
+                const parent = this.bones.find(p => p.id === bone.parentId); if (!parent) return;
+                const ctx = this.layers[this.activeLayerIndex].ctx;
+                const drawRestore = (img) => {
+                    const currDx = bone.x - parent.x; const currDy = bone.y - parent.y; const currDist = Math.hypot(currDx, currDy); const currAngle = Math.atan2(currDy, currDx);
+                    const scaleX = currDist / bone.skin.len; 
+                    ctx.save(); ctx.translate(parent.x, parent.y); ctx.rotate(currAngle); ctx.scale(scaleX, 1); ctx.drawImage(img, 0, -bone.skin.h/2); ctx.restore();
+                    this.saveCurrentFrameData();
+                };
+                if(bone.skin.imgElement && bone.skin.imgElement.complete) { drawRestore(bone.skin.imgElement); } else { const img = new Image(); img.src = bone.skin.data; img.onload = () => drawRestore(img); }
+            }
+
+            updateBoneMenuUI() {
+                const btn = document.getElementById('btnBindBone');
+                if (this.selectedBone && this.selectedBone.skin) { btn.innerHTML = '<i class="fas fa-unlink mr-2"></i> Lepaskan'; btn.className = "text-left px-3 py-2 hover:bg-orange-50 text-sm rounded text-orange-600 font-medium"; } 
+                else { btn.innerHTML = '<i class="fas fa-link mr-2"></i> Gabungkan'; btn.className = "text-left px-3 py-2 hover:bg-blue-50 text-sm rounded text-blue-700 font-medium"; }
+            }
+
+            toggleRulerMenu() { document.getElementById('rulerPopup').classList.toggle('hidden'); document.getElementById('brushPopup').classList.add('hidden'); }
+            setRuler(type) { this.rulerType = type; document.getElementById('rulerPopup').classList.add('hidden'); }
+            drawShape(ctx, x1, y1, x2, y2, type, isPreview) {
+                ctx.beginPath(); ctx.lineWidth = this.brushSize; ctx.lineCap = 'round';
+                ctx.strokeStyle = isPreview ? '#000' : this.brushColorStr;
+                if(isPreview) { ctx.setLineDash([5,5]); ctx.lineWidth = 1 / this.scale; } 
+                else { ctx.setLineDash([]); ctx.globalCompositeOperation = this.currentTool==='eraser'?'destination-out':'source-over'; }
+                if(type === 'line') { ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); } 
+                else if (type === 'circle') { const r = Math.sqrt(Math.pow(x2-x1, 2) + Math.pow(y2-y1, 2)); ctx.arc(x1, y1, r, 0, 2 * Math.PI); } 
+                else if (type === 'square') { const w = x2 - x1; const h = y2 - y1; ctx.rect(x1, y1, w, h); }
+                ctx.stroke();
+            }
+            hidePopups() { document.getElementById('brushPopup').classList.add('hidden'); document.getElementById('fpsPopup').classList.add('hidden'); }
+
+            createLayer(name) {
+                this.layerCounter++;
+                const cvs = document.createElement('canvas'); cvs.width = this.width; cvs.height = this.height;
+                cvs.className = "absolute top-0 left-0 w-full h-full pointer-events-none";
+                const ctx = cvs.getContext('2d');
+                const layer = { id: this.layerCounter, name: name || `Layer ${this.layers.length+1}`, canvas: cvs, ctx: ctx, visible: true };
+                this.layerStack.appendChild(cvs); this.layers.push(layer); this.activeLayerIndex = this.layers.length - 1;
+                this.updateLayerUI(); this.undoStack = []; this.redoStack = []; 
+            }
+            clearActiveLayer() { if(this.activeLayerIndex > -1) { this.saveStateToUndo(); this.layers[this.activeLayerIndex].ctx.clearRect(0,0,this.width, this.height); this.saveCurrentFrameData(); } }
+            toggleLayerPanel() { document.getElementById('layerPanel').classList.toggle('hidden'); }
+            updateLayerUI() {
+                const list = document.getElementById('layerList'); list.innerHTML = '';
+                document.getElementById('layerCountBadge').innerText = this.layers.length;
+                for(let i=this.layers.length-1; i>=0; i--) {
+                    const l = this.layers[i];
+                    const div = document.createElement('div');
+                    div.className = `layer-item ${i === this.activeLayerIndex ? 'active' : ''}`;
+                    div.onclick = () => { this.activeLayerIndex = i; this.updateLayerUI(); };
+                    const eyeIcon = l.visible ? 'fa-eye' : 'fa-eye-slash text-gray-400';
+                    div.innerHTML = `<div onclick="event.stopPropagation(); window.app.toggleVis(${i})" class="w-6 text-center text-gray-500 hover:text-gray-800"><i class="fas ${eyeIcon}"></i></div><span class="flex-1 text-sm font-medium text-gray-700">${l.name}</span><div class="flex gap-1"><button onclick="event.stopPropagation(); window.app.moveLayer(${i}, 1)" class="w-6 h-6 hover:bg-gray-200 rounded text-gray-600 flex items-center justify-center"><i class="fas fa-chevron-up text-xs"></i></button><button onclick="event.stopPropagation(); window.app.moveLayer(${i}, -1)" class="w-6 h-6 hover:bg-gray-200 rounded text-gray-600 flex items-center justify-center"><i class="fas fa-chevron-down text-xs"></i></button><button onclick="event.stopPropagation(); window.app.deleteLayer(${i})" class="w-6 h-6 hover:bg-red-100 text-gray-400 hover:text-red-500 rounded flex items-center justify-center"><i class="fas fa-trash text-xs"></i></button></div>`;
+                    list.appendChild(div);
+                }
+            }
+            toggleVis(i) { this.layers[i].visible = !this.layers[i].visible; this.layers[i].canvas.style.display = this.layers[i].visible ? 'block' : 'none'; this.updateLayerUI(); }
+            deleteLayer(i) { if(this.layers.length <= 1) { alert("Minimal 1 Layer!"); return; } this.layerStack.removeChild(this.layers[i].canvas); this.layers.splice(i, 1); this.activeLayerIndex = Math.max(0, this.activeLayerIndex - 1); this.updateLayerUI(); }
+            moveLayer(index, delta) {
+                const newIndex = index + delta;
+                if (newIndex < 0 || newIndex >= this.layers.length) return;
+                const temp = this.layers[index]; this.layers[index] = this.layers[newIndex]; this.layers[newIndex] = temp;
+                if (this.activeLayerIndex === index) this.activeLayerIndex = newIndex; else if (this.activeLayerIndex === newIndex) this.activeLayerIndex = index;
+                const container = document.getElementById('layerStack'); this.layers.forEach(l => container.appendChild(l.canvas));
+                this.updateLayerUI();
+            }
+
+            initColorPicker() {
+                const wc = document.getElementById('wheelCanvas'); const ctx = wc.getContext('2d');
+                const cx=110, cy=110; ctx.clearRect(0,0,220,220);
+                for(let i=0; i<360; i++){ const startAngle=(i-90)*Math.PI/180; const endAngle=(i+1.5-90)*Math.PI/180; ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,105,startAngle,endAngle); ctx.closePath(); ctx.fillStyle=`hsl(${i},100%,50%)`; ctx.fill(); }
+                ctx.globalCompositeOperation='destination-out'; ctx.beginPath(); ctx.arc(cx,cy,80,0,2*Math.PI); ctx.fill(); ctx.globalCompositeOperation='source-over';
+                wc.onclick = (e) => this.handleWheelClick(e); document.getElementById('svCanvas').onclick = (e) => this.handleSVClick(e);
+                document.getElementById('alphaSlider').oninput = (e) => { this.color.a = e.target.value / 100; this.updateColorFromHSL(); };
+                this.redrawSV();
+            }
+            handleWheelClick(e) {
+                const rect = e.target.getBoundingClientRect();
+                const x = e.clientX - rect.left - 110; const y = e.clientY - rect.top - 110;
+                let angle = Math.atan2(y, x) * 180 / Math.PI; if(angle < 0) angle += 360;
+                this.color.h = (angle + 90) % 360;
+                const rad = (this.color.h - 90) * Math.PI / 180;
+                const m = document.getElementById('hueMarker'); m.style.left = (110 + 92.5 * Math.cos(rad)) + 'px'; m.style.top = (110 + 92.5 * Math.sin(rad)) + 'px'; m.style.backgroundColor = `hsl(${this.color.h}, 100%, 50%)`;
+                this.redrawSV(); this.updateColorFromHSL();
+            }
+            redrawSV() {
+                const ctx = document.getElementById('svCanvas').getContext('2d');
+                const w=110, h=110; ctx.clearRect(0,0,w,h);
+                const gH = ctx.createLinearGradient(0,0,w,0); gH.addColorStop(0, '#fff'); gH.addColorStop(1, `hsl(${this.color.h}, 100%, 50%)`); ctx.fillStyle = gH; ctx.fillRect(0,0,w,h);
+                const gV = ctx.createLinearGradient(0,0,0,h); gV.addColorStop(0, 'transparent'); gV.addColorStop(1, '#000'); ctx.fillStyle = gV; ctx.fillRect(0,0,w,h);
+            }
+            handleSVClick(e) {
+                const rect = e.target.getBoundingClientRect();
+                const x = Math.max(0, Math.min(110, e.clientX - rect.left)); const y = Math.max(0, Math.min(110, e.clientY - rect.top));
+                const m = document.getElementById('svMarker'); m.style.left = (55 + x) + 'px'; m.style.top = (55 + y) + 'px';
+                const sHSV = x / 110; const vHSV = 1 - (y / 110);
+                const l = (2 - sHSV) * vHSV / 2; let s = 0; if (l!==0) { if (l===1) s=0; else if (l<0.5) s=sHSV*vHSV/(l*2); else s=sHSV*vHSV/(2-l*2); }
+                this.color.s = s * 100; this.color.l = l * 100; this.updateColorFromHSL();
+            }
+            updateColorFromHSL() {
+                this.brushColorStr = `hsla(${this.color.h}, ${this.color.s}%, ${this.color.l}%, ${this.color.a})`;
+                document.getElementById('activeColorFill').style.backgroundColor = this.brushColorStr;
+                document.getElementById('modalColorPreview').style.backgroundColor = this.brushColorStr;
+                document.getElementById('alphaGradient').style.background = `linear-gradient(to right, transparent, hsl(${this.color.h}, ${this.color.s}%, ${this.color.l}%))`;
+            }
+            setColor(hex) { this.brushColorStr = hex; document.getElementById('activeColorFill').style.backgroundColor = hex; document.getElementById('modalColorPreview').style.backgroundColor = hex; document.getElementById('hexInput').value = hex; }
+            setFromHex(hex) { if(hex.startsWith('#')) this.setColor(hex); }
+            redrawColorWheel() { this.initColorPicker(); }
+
+            // --- FRAME FIX ---
+            addFrame() {
+                if (this.frames.length > 0) this.saveCurrentFrameData();
+                this.layers.forEach(l => l.ctx.clearRect(0,0,this.width, this.height));
+                if(this.layers.length === 0) this.createLayer("Layer 1");
+                const savedBones = JSON.parse(JSON.stringify(this.bones)); 
+                const snapshot = {
+                    layers: this.layers.map(l => ({ id: l.id, data: l.canvas.toDataURL() })),
+                    bones: savedBones 
+                };
+                this.frames.push(snapshot); 
+                this.currentFrameIndex = this.frames.length - 1;
+                
+                this.rehydrateBones(this.bones, () => { this.drawBones(); this.renderTimeline(); });
+                setTimeout(() => { const c=document.getElementById('timelineContainer'); c.scrollLeft=c.scrollWidth; }, 50);
+            }
+            
+            saveCurrentFrameData() {
+                const snapshot = {
+                    layers: this.layers.map(l => ({ id: l.id, data: l.canvas.toDataURL() })),
+                    bones: JSON.parse(JSON.stringify(this.bones)) 
+                };
+                this.frames[this.currentFrameIndex] = snapshot;
+                setTimeout(() => this.updateFrameThumb(this.currentFrameIndex), 10);
+            }
+            
+            updateFrameThumb(i) {
+                const tCan = document.createElement('canvas'); tCan.width = this.width/4; tCan.height = this.height/4;
+                const tCtx = tCan.getContext('2d'); tCtx.fillStyle = 'white'; tCtx.fillRect(0,0,tCan.width,tCan.height);
+                const frame = this.frames[i];
+                if(frame) {
+                    if(frame.layers) {
+                        frame.layers.forEach(ld => { const img = new Image(); img.onload = () => tCtx.drawImage(img,0,0,tCan.width,tCan.height); img.src = ld.data; });
+                    }
+                    if(frame.bones) {
+                        frame.bones.forEach(b => {
+                            if(b.skin && b.skin.data && b.parentId) {
+                                const parent = frame.bones.find(p => p.id === b.parentId);
+                                if(parent) {
+                                    const img = new Image(); 
+                                    img.onload = () => {
+                                        tCtx.save(); tCtx.translate(parent.x/4, parent.y/4); 
+                                        const angle = Math.atan2(b.y-parent.y, b.x-parent.x); tCtx.rotate(angle);
+                                        const dist = Math.hypot(b.x-parent.x, b.y-parent.y); const scaleX = dist / b.skin.len;
+                                        tCtx.scale(scaleX, 1); tCtx.drawImage(img, 0, -b.skin.h/8, img.width/4, img.height/4); tCtx.restore();
+                                        const thumb = document.getElementById(`thumb_${i}`); if(thumb) thumb.style.backgroundImage = `url(${tCan.toDataURL()})`;
+                                    }
+                                    img.src = b.skin.data;
+                                }
+                            }
+                        });
+                    }
+                    const thumb = document.getElementById(`thumb_${i}`); if(thumb) thumb.style.backgroundImage = `url(${tCan.toDataURL()})`;
+                }
+            }
+            
+            loadFrame(index) {
+                this.saveCurrentFrameData(); 
+                this.currentFrameIndex = index;
+                this.layers.forEach(l => l.ctx.clearRect(0,0,this.width, this.height));
+                this.boneRenderCtx.clearRect(0,0,this.width, this.height);
+                const frame = this.frames[index];
+                if(frame) { 
+                    if(frame.layers) { frame.layers.forEach((ld, i) => { if(!this.layers[i]) this.createLayer(); const img = new Image(); img.onload = () => this.layers[i].ctx.drawImage(img, 0, 0); img.src = ld.data; }); }
+                    if(frame.bones) { this.bones = JSON.parse(JSON.stringify(frame.bones)); this.rehydrateBones(this.bones, () => { this.drawBones(); }); } else { this.bones = []; }
+                }
+                this.drawBones(); this.renderTimeline(); this.updateOnionSkin();
+            }
+            
+            rehydrateBones(bonesList, callback) {
+                let loaded = 0; let total = 0;
+                bonesList.forEach(b => { if(b.skin && b.skin.data) total++; });
+                if(total === 0) { if(callback) callback(); return; }
+                bonesList.forEach(b => {
+                    if(b.skin && b.skin.data) {
+                        const img = new Image();
+                        img.onload = () => { b.skin.imgElement = img; loaded++; if(loaded === total && callback) callback(); };
+                        img.src = b.skin.data;
+                    }
+                });
+            }
+
+            renderTimeline() {
+                const container = document.getElementById('timelineContainer'); container.innerHTML = '';
+                this.frames.forEach((_, i) => {
+                    const div = document.createElement('div'); div.className = `frame-item ${i === this.currentFrameIndex ? 'active' : ''}`;
+                    div.innerHTML = `<div id="thumb_${i}" class="frame-thumb"></div><div class="frame-number">${i+1}</div>`;
+                    div.onclick = (e) => { if(i === this.currentFrameIndex) { const menu = document.getElementById('frameMenu'); menu.style.left = e.clientX + 'px'; menu.classList.remove('hidden'); } else { this.loadFrame(i); document.getElementById('frameMenu').classList.add('hidden'); } };
+                    container.appendChild(div); this.updateFrameThumb(i);
+                });
+            }
+            duplicateFrame() { this.saveCurrentFrameData(); const copy = JSON.parse(JSON.stringify(this.frames[this.currentFrameIndex])); this.frames.splice(this.currentFrameIndex + 1, 0, copy); this.loadFrame(this.currentFrameIndex + 1); document.getElementById('frameMenu').classList.add('hidden'); }
+            deleteFrame() { if(this.frames.length <= 1) return alert("Minimal 1 Frame!"); this.frames.splice(this.currentFrameIndex, 1); this.loadFrame(Math.max(0, this.currentFrameIndex - 1)); document.getElementById('frameMenu').classList.add('hidden'); }
+
+            saveStateToUndo() { if(this.activeLayerIndex === -1) return; const l = this.layers[this.activeLayerIndex]; if(this.undoStack.length >= this.MAX_UNDO) this.undoStack.shift(); this.undoStack.push({ layerIdx: this.activeLayerIndex, data: l.canvas.toDataURL() }); this.redoStack = []; }
+            undo() { if(this.undoStack.length === 0) return; const s = this.undoStack.pop(); const l = this.layers[s.layerIdx]; this.redoStack.push({ layerIdx: s.layerIdx, data: l.canvas.toDataURL() }); this.loadImg(l.ctx, s.data); }
+            redo() { if(this.redoStack.length === 0) return; const s = this.redoStack.pop(); const l = this.layers[s.layerIdx]; this.undoStack.push({ layerIdx: s.layerIdx, data: l.canvas.toDataURL() }); this.loadImg(l.ctx, s.data); }
+            loadImg(ctx, url) { const img = new Image(); img.onload = () => { ctx.clearRect(0,0,this.width,this.height); ctx.drawImage(img,0,0); this.saveCurrentFrameData(); }; img.src = url; }
+
+            setTool(t) { 
+                this.currentTool = t; this.rulerType = null; 
+                document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active')); 
+                const btn = document.getElementById(t==='select'?'btnSelect':(t==='bone'?'btnBone':'btn'+t.charAt(0).toUpperCase()+t.slice(1))); 
+                if(btn) btn.classList.add('active'); 
+                const bp = document.getElementById('brushPopup'); 
+                if(t==='brush' || t==='eraser') bp.classList.remove('hidden'); else bp.classList.add('hidden'); 
+                if(t !== 'select' && this.selectionRect) this.isSelecting = false; 
+                this.drawBones();
+            }
+            setBrushSize(v) { this.brushSize = Math.max(1, 50 - (v/2)); document.getElementById('brushSizeDisplay').innerText = Math.floor(this.brushSize) + 'px'; }
+            setFps(v) { this.fps = parseInt(v); document.getElementById('btnFps').innerText = this.fps; document.getElementById('fpsDisplay').innerText = this.fps + ' FPS'; }
+            
+            togglePlay() { if(this.isPlaying) { this.isPlaying = false; clearInterval(this.playInterval); document.getElementById('btnPlay').innerHTML = '<i class="fas fa-play"></i>'; this.loadFrame(this.currentFrameIndex); } else { this.saveCurrentFrameData(); this.isPlaying = true; document.getElementById('btnPlay').innerHTML = '<i class="fas fa-stop"></i>'; let idx = 0; this.playInterval = setInterval(() => { this.layers.forEach(l => l.ctx.clearRect(0,0,this.width, this.height)); this.boneRenderCtx.clearRect(0,0,this.width,this.height); const f = this.frames[idx]; if(f) { if(f.layers) f.layers.forEach((ld,i) => { if(this.layers[i]) { const img = new Image(); img.src=ld.data; img.onload=()=>this.layers[i].ctx.drawImage(img,0,0); } }); if(f.bones) { this.bones = JSON.parse(JSON.stringify(f.bones)); this.rehydrateBones(this.bones, () => this.drawBones()); } } idx = (idx+1)%this.frames.length; }, 1000/this.fps); } }
+            
+            updateOnionSkin() { this.onionCtx.clearRect(0,0,this.width, this.height); if(this.currentFrameIndex > 0) { const prev = this.frames[this.currentFrameIndex-1]; const tCan = document.createElement('canvas'); tCan.width=this.width; tCan.height=this.height; const tCtx = tCan.getContext('2d'); let count = 0; if(prev && prev.layers) { prev.layers.forEach(ld => { const img = new Image(); img.src = ld.data; img.onload = () => { tCtx.drawImage(img,0,0); count++; if(count === prev.layers.length) { this.onionCtx.globalAlpha = 0.3; this.onionCtx.drawImage(tCan,0,0); } } }); } } }
+            floodFill(startX, startY, colorStr) { const compCanvas = document.createElement('canvas'); compCanvas.width = this.width; compCanvas.height = this.height; const compCtx = compCanvas.getContext('2d'); this.layers.forEach(l => { if(l.visible) compCtx.drawImage(l.canvas, 0, 0); }); const compData = compCtx.getImageData(0, 0, this.width, this.height).data; const targetCtx = this.layers[this.activeLayerIndex].ctx; const targetImgData = targetCtx.getImageData(0, 0, this.width, this.height); const targetData = targetImgData.data; const getIdx = (x, y) => (y * this.width + x) * 4; const startIdx = getIdx(startX, startY); const startR = compData[startIdx]; const startG = compData[startIdx+1]; const startB = compData[startIdx+2]; const startA = compData[startIdx+3]; const dummy = document.createElement('canvas'); dummy.width=1; dummy.height=1; const dCtx = dummy.getContext('2d'); dCtx.fillStyle = colorStr; dCtx.fillRect(0,0,1,1); const fData = dCtx.getImageData(0,0,1,1).data; const [fillR, fillG, fillB, fillA] = fData; if (startR===fillR && startG===fillG && startB===fillB && startA===fillA) return; const stack = [[startX, startY]]; const match = (idx) => { return compData[idx]===startR && compData[idx+1]===startG && compData[idx+2]===startB && compData[idx+3]===startA; }; while(stack.length) { const [x, y] = stack.pop(); const idx = getIdx(x, y); if (match(idx)) { compData[idx] = fillR; compData[idx+1] = fillG; compData[idx+2] = fillB; compData[idx+3] = fillA; targetData[idx] = fillR; targetData[idx+1] = fillG; targetData[idx+2] = fillB; targetData[idx+3] = fillA; if (x > 0) stack.push([x-1, y]); if (x < this.width-1) stack.push([x+1, y]); if (y > 0) stack.push([x, y-1]); if (y < this.height-1) stack.push([x, y+1]); } } targetCtx.putImageData(targetImgData, 0, 0); this.saveCurrentFrameData(); }
+
+            // --- EXPORT FUNCTIONS ---
+            toggleExportModal() {
+                document.getElementById('exportModal').classList.toggle('hidden');
+            }
+
+            async downloadVideo() {
+                this.saveCurrentFrameData();
+                this.toggleExportModal();
+                
+                // Temporary Canvas for Recording
+                const canvas = document.createElement('canvas');
+                canvas.width = this.width;
+                canvas.height = this.height;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#ffffff'; // Background color
+
+                const stream = canvas.captureStream(this.fps);
+                const recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+                const chunks = [];
+
+                recorder.ondataavailable = e => chunks.push(e.data);
+                recorder.onstop = () => {
+                    const blob = new Blob(chunks, { type: 'video/webm' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'micravise-animasi.webm';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    alert("Video berhasil disimpan!");
+                };
+
+                recorder.start();
+
+                // Playback logic for recording
+                for (let i = 0; i < this.frames.length; i++) {
+                    const frame = this.frames[i];
+                    ctx.fillRect(0, 0, this.width, this.height); // Clear/BG
+
+                    // Draw Layers
+                    if (frame.layers) {
+                        for (let j = 0; j < frame.layers.length; j++) {
+                            const ld = frame.layers[j];
+                            if (ld.data) {
+                                await new Promise(resolve => {
+                                    const img = new Image();
+                                    img.onload = () => {
+                                        ctx.drawImage(img, 0, 0);
+                                        resolve();
+                                    };
+                                    img.src = ld.data;
+                                });
+                            }
+                        }
+                    }
+
+                    // Draw Bones
+                    if (frame.bones) {
+                        frame.bones.forEach(b => {
+                            if (b.skin && b.skin.data && b.parentId) {
+                                const parent = frame.bones.find(p => p.id === b.parentId);
+                                if (parent) {
+                                    const currDx = b.x - parent.x; 
+                                    const currDy = b.y - parent.y;
+                                    const currDist = Math.hypot(currDx, currDy); 
+                                    const currAngle = Math.atan2(currDy, currDx);
+                                    const scaleX = currDist / b.skin.len; 
+                                    
+                                    ctx.save(); 
+                                    ctx.translate(parent.x, parent.y); 
+                                    ctx.rotate(currAngle);
+                                    ctx.scale(scaleX, 1);
+                                    
+                                    if(b.skin.imgElement && b.skin.imgElement.complete) {
+                                        ctx.drawImage(b.skin.imgElement, 0, -b.skin.h/2);
+                                    } else {
+                                        // Synchronous-ish fallback since rehydration handles imgElement
+                                        const img = new Image();
+                                        img.src = b.skin.data;
+                                        ctx.drawImage(img, 0, -b.skin.h/2);
+                                    }
+                                    ctx.restore();
+                                }
+                            }
+                        });
+                    }
+
+                    // Wait for frame duration
+                    await new Promise(r => setTimeout(r, 1000 / this.fps));
+                }
+
+                recorder.stop();
+            }
+
+            downloadJSON() {
+                this.saveCurrentFrameData();
+                const data = {
+                    width: this.width,
+                    height: this.height,
+                    fps: this.fps,
+                    frames: this.frames
+                };
+                const jsonStr = JSON.stringify(data);
+                const blob = new Blob([jsonStr], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `micravise-project-${Date.now()}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                this.toggleExportModal();
+            }
+
+            // --- IMPORT RESIZE FUNCTIONALITY ---
+            handleImageImport(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        let dWidth = img.width;
+                        let dHeight = img.height;
+                        if (dWidth > this.width || dHeight > this.height) {
+                           const ratio = Math.min(this.width / dWidth, this.height / dHeight);
+                           dWidth *= ratio;
+                           dHeight *= ratio;
+                        }
+                        const dx = (this.width - dWidth) / 2;
+                        const dy = (this.height - dHeight) / 2;
+                        
+                        // Set state to importing
+                        this.importingImage = { img: img, x: dx, y: dy, w: dWidth, h: dHeight };
+                        document.getElementById('importControls').classList.remove('hidden');
+                        e.target.value = ''; // Reset input
+                        this.drawImportOverlay();
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+
+            drawImportOverlay() {
+                if(!this.importingImage) return;
+                this.overlayCtx.clearRect(0,0,this.width, this.height);
+                const {img, x, y, w, h} = this.importingImage;
+                
+                // Draw Image
+                this.overlayCtx.drawImage(img, x, y, w, h);
+                
+                // Draw Border
+                this.overlayCtx.save();
+                this.overlayCtx.strokeStyle = '#007bff';
+                this.overlayCtx.lineWidth = 2 / this.scale;
+                this.overlayCtx.strokeRect(x, y, w, h);
+                
+                // Draw Handles
+                this.overlayCtx.fillStyle = '#007bff';
+                const handleSize = 15 / this.scale;
+                const drawHandle = (hx, hy) => {
+                    this.overlayCtx.beginPath();
+                    this.overlayCtx.arc(hx, hy, handleSize/2, 0, Math.PI*2);
+                    this.overlayCtx.fill();
+                };
+                drawHandle(x, y); // TL
+                drawHandle(x + w, y); // TR
+                drawHandle(x, y + h); // BL
+                drawHandle(x + w, y + h); // BR
+                
+                this.overlayCtx.restore();
+            }
+
+            confirmImport() {
+                if(!this.importingImage) return;
+                this.saveStateToUndo();
+                this.createLayer("Imported Image");
+                const {img, x, y, w, h} = this.importingImage;
+                this.layers[this.activeLayerIndex].ctx.drawImage(img, x, y, w, h);
+                this.importingImage = null;
+                this.overlayCtx.clearRect(0,0,this.width, this.height);
+                document.getElementById('importControls').classList.add('hidden');
+                this.saveCurrentFrameData();
+            }
+
+            cancelImport() {
+                this.importingImage = null;
+                this.overlayCtx.clearRect(0,0,this.width, this.height);
+                document.getElementById('importControls').classList.add('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
